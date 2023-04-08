@@ -4,16 +4,15 @@ This is a modification of the official firmware for the esp32 co-processor on th
 
 This is based on version 1.03 RC3 of AGON Quark VDP
 
-Its purpose is to enable using several 8x16 fonts for fun (and increased readability especiall in high res Mode 0) The actual changes to the official VDP code base are rather minimal and consist of only a few modifications in the main video.ino file and in agon_fonts.h and the addition of three new fonts (ATARI, Olivetti THIN, IBM VGA) in include files.
+The purpose of this version is to enable using several 8x16 fonts for fun (and increased readability especiall in high resolution mode 0). The actual changes to the official VDP code base are rather minimal, they consist of only a few modifications in the main video.ino file, in agon_fonts.h and the addition of three new fonts (ATARI, Olivetti THIN, IBM VGA) in include files.
 
 
-The IBM VGA and THIN fonts used are from the Ultimate Oldschool PC Font Pack and licensed under a Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/)
+The IBM VGA and Olivetti THIN fonts where taken from the "Ultimate Oldschool PC Font Pack" and are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/)
 
-The "Atari ST 8x16 System Font by divVerent" is available on basically all internet font sites "free for personal use\", if you are the original author and disagree with my use, please let me know!
-
+The "Atari ST 8x16 System Font by divVerent" is available on basically all internet font download sites "free for personal use", if you are the original author and disagree with my use, please let me know!
 
  
-The build process is unchanged and documented in the following (original) text:
+The build process is unchanged and documented in the following (original) text, I'd only like to add one recommendation: git clone this repo into a folder named video ("git clone https://github.com/anoriangit/agon-vdp.git video") in order to prevent the Arduino IDE from complaining about the project folder name.
 
 # agon-vdp
 
