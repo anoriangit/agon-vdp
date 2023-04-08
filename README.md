@@ -1,18 +1,37 @@
-# agon-vdp (multi font)
+# AGON-VDP (multi font)
+
+### What is the multi font VDP
 
 This is a modification of the official firmware for the esp32 co-processor on the AGON.
 
-This is based on version 1.03 RC3 of AGON Quark VDP
+It is based on version 1.03 RC3 of AGON Quark VDP.
 
-The purpose of this version is to enable using several 8x16 fonts for fun (and increased readability especiall in high resolution mode 0). The actual changes to the official VDP code base are rather minimal, they consist of only a few modifications in the main video.ino file, in agon_fonts.h and the addition of three new fonts (ATARI, Olivetti THIN, IBM VGA) in include files.
+The purpose of this modification is to enable using several 8x16 fonts, for fun and increased readability, especially in high resolution mode 0. 
+
+The actual changes to the official VDP code base are rather minimal, they consist of only a few modifications in the main video.ino file, in agon_fonts.h and the addition of three new fonts (ATARI, Olivetti THIN, IBM VGA) in include files.
+
+### Usage
+
+The available fonts can be selected by using the added VDU command byte sequence: 
+
+`VDU 23,0,160,FONTID`
+
+where FONTID is one of 
+- 0 Agon system font
+- 1 ATARI
+- 2 Olivetti THIN
+- 3 IMB VGA.
 
 
-The IBM VGA and Olivetti THIN fonts where taken from the "Ultimate Oldschool PC Font Pack" and are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/)
+### Fonts licensing
 
-The "Atari ST 8x16 System Font by divVerent" is available on basically all internet font download sites "free for personal use", if you are the original author and disagree with my use, please let me know!
+Fonts licensing: The IBM VGA and Olivetti THIN fonts where taken from the "Ultimate Oldschool PC Font Pack" and are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/)
 
+The "Atari ST 8x16 System Font by divVerent" is available on many internet font download sites "free for personal use", if you are the original author and disagree with my use, please let me know!
+
+### Build & install
  
-The build process is unchanged and documented in the following (original) text, I'd only like to add one recommendation: git clone this repo into a folder named video ("git clone https://github.com/anoriangit/agon-vdp.git video") in order to prevent the Arduino IDE from complaining about the project folder name.
+The build and install process is unchanged and documented in the following (original) text, I'd only like to add one recommendation: git clone this repo into a folder named video ("git clone https://github.com/anoriangit/agon-vdp.git video") in order to prevent the Arduino IDE from complaining about the project folder name.
 
 # agon-vdp
 
