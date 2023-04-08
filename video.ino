@@ -1,4 +1,18 @@
+// ----------------------------------------------------------------------------
+// Agon VDP multi font version
+// based on 1.03 RC 
+// updated: 8-Apr-2023 gs
 //
+// This is only very slightly modified from the original as follows
+// CHANGELOG:
+// - fabgl::FontInfo *CURRENT_FONT pointer added
+// - modified copy_font() to take an int parameter: font_id
+// - changed call to copy_font to select font 0 at startup
+// - adapted change_mode() to call Canvas->selectFont(CURRENT_FONT);
+// - implemented VDP_SETFONT (VDU 23,0,160,id) in vdu_sys_video()
+// ----------------------------------------------------------------------------
+
+
 // Title:	        Agon Video BIOS
 // Author:        	Dean Belfield
 // Contributors:	Jeroen Venema (Sprite Code, VGA Mode Switching)
@@ -88,6 +102,9 @@ uint8_t		palette[64];						// Storage for the palette
 
 audio_channel *	audio_channels[AUDIO_CHANNELS];	// Storage for the channel data
 
+
+fabgl::FontInfo const *CURRENT_FONT = NULL;
+
 ESP32Time	rtc(0);								// The RTC
 
 #if DEBUG == 1 || SERIALKB == 1
@@ -116,8 +133,11 @@ void setup() {
 	PS2Controller.keyboard()->setCodePage(fabgl::CodePages::get(1252));
 	PS2Controller.keyboard()->setTypematicRateAndDelay(kbRepeatRate, kbRepeatDelay);
 	init_audio();
-	copy_font();
-  	set_mode(1);
+
+  CURRENT_FONT = fabgl::FONTS_TABLE[AGON_SYSTEM_FONT_ID];
+	copy_font(AGON_SYSTEM_FONT_ID); 
+  
+  set_mode(1);
 	boot_screen();
 	wait_eZ80();
 }
@@ -168,7 +188,7 @@ void boot_screen() {
 	#if RC > 0
 	  	printFmt(" RC%d", RC);
 	#endif
-	printFmt("\n\r");
+	printFmt(" (multi font)\n\r");
 }
 
 // Debug printf to PC
@@ -240,8 +260,23 @@ uint32_t readLong_b() {
 
 // Copy the AGON font data from Flash to RAM
 //
-void copy_font() {
-	memcpy(fabgl::FONT_AGON_DATA + 256, fabgl::FONT_AGON_BITMAP, sizeof(fabgl::FONT_AGON_BITMAP));
+void copy_font(int id) {
+  switch(id) {
+    case AGON_SYSTEM_FONT_ID:
+	    memcpy(fabgl::FONT_AGON_DATA + 256, fabgl::FONT_AGON_BITMAP, sizeof(fabgl::FONT_AGON_BITMAP));
+      break;
+    case AGON_ATARI_FONT_ID:
+      memcpy(fabgl::FONT_AGON_DATA, fabgl::FONT_ATARI_BITMAP, AGON_FONT_SIZE);
+      break;
+    case AGON_THIN_FONT_ID:
+      memcpy(fabgl::FONT_AGON_DATA, fabgl::FONT_THIN_BITMAP, AGON_FONT_SIZE);
+      break;
+    case AGON_IBM_FONT_ID:
+      memcpy(fabgl::FONT_AGON_DATA, fabgl::FONT_IBM_BITMAP, AGON_FONT_SIZE);
+      break;
+    default:
+      debug_log("copy_font() - invalid font id: %d\n", id);
+  }
 }
 
 // Set the RTS line value
@@ -634,7 +669,7 @@ int change_mode(int mode) {
  	gfg = colourLookup[0x3F];
 	tfg = colourLookup[0x3F];
 	tbg = colourLookup[0x00];
-  	Canvas->selectFont(&fabgl::FONT_AGON);
+  	Canvas->selectFont(CURRENT_FONT);
   	Canvas->setGlyphOptions(GlyphOptions().FillBackground(true));
   	Canvas->setPenWidth(1);
 	origin = Point(0,0);
@@ -1241,7 +1276,15 @@ void vdu_sys_video() {
 		case VDP_TERMINALMODE: {		// VDU 23, 0, &FF
 			switchTerminalMode(); 		// Switch to terminal mode
 		}	break;
-  	}
+    case VDP_SETFONT: {
+			int id = readByte_t();		
+			if(id >= 0 && id < AGON_NUM_FONTS) {
+          copy_font(id);
+       	  CURRENT_FONT = fabgl::FONTS_TABLE[id];
+          set_mode(videoMode);    // need to force a new canvas to really make this "stick"
+      }
+    } break;
+    }
 }
 
 // Do some audio

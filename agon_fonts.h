@@ -1,3 +1,14 @@
+// ----------------------------------------------------------------------------
+// Agon VDP multi font version
+// based on 1.03 RC 
+// updated: 8-Apr-2023 gs
+//
+// CHANGELOG:
+// - added a number of font related defines at the top
+// - added includes for three fonts: atari_font.h, thin_font.h, ibm_font.h
+// ----------------------------------------------------------------------------
+
+
 //
 // Title:	        Agon Video BIOS - font file
 // Author:        	Damien Guard
@@ -11,9 +22,24 @@
 
 #pragma once
 
-namespace fabgl {
+#define AGON_FONT_SIZE        2048
 
-	uint8_t FONT_AGON_DATA[256*8]; 
+#define AGON_SYSTEM_FONT_ID   0
+#define AGON_ATARI_FONT_ID    1
+#define AGON_THIN_FONT_ID     2
+#define AGON_IBM_FONT_ID      3
+#define AGON_NUM_FONTS        4
+
+namespace fabgl {
+	uint8_t FONT_AGON_DATA[AGON_FONT_SIZE]; 
+}
+
+#include "atari_font.h"
+#include "thin_font.h"
+#include "ibm_font.h"
+
+
+namespace fabgl {
 
 	static const uint8_t FONT_AGON_BITMAP[] = {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //  
@@ -269,4 +295,9 @@ namespace fabgl {
 		.chptr     = nullptr,
 		.codepage  = 1252,
 	};
+
+    extern const FontInfo *FONTS_TABLE[AGON_NUM_FONTS] = {
+      &FONT_AGON, &FONT_ATARI, &FONT_THIN, &FONT_IBM
+    };
+
 }

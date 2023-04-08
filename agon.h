@@ -1,3 +1,12 @@
+// ----------------------------------------------------------------------------
+// Agon VDP multi font version
+// based on 1.03 RC 
+// updated: 8-Apr-2023 gs
+//
+// CHANGELOG:
+// added define #define VDP_SETFONT 0xA0 
+// ----------------------------------------------------------------------------
+
 //
 // Title:	        Agon Video BIOS - Function prototypes
 // Author:        	Dean Belfield
@@ -35,6 +44,8 @@
 
 // Commands for VDU 23, 0, n
 //
+#define VDP_SETFONT       0xA0  // 10100000 (160)
+
 #define VDP_GP					0x80	// General poll data
 #define VDP_KEYCODE				0x81	// Keyboard data
 #define VDP_CURSOR				0x82	// Cursor positions
