@@ -3,3 +3,9 @@ debug.cfg
 debug_custom.json
 esp32.svd
 README.md.backup
+build/esp32.esp32.esp32/video.ino.bin
+build/esp32.esp32.esp32/video.ino.bootloader.bin
+build/esp32.esp32.esp32/video.ino.elf
+build/esp32.esp32.esp32/video.ino.map
+build/esp32.esp32.esp32/video.ino.partitions.bin
+fonts/unscii8x16.fbm

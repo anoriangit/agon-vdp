@@ -1,20 +1,20 @@
-# AGON-VDP (multi font)
+# AGON-VDP (multi font) 1.03
 
 ### What is the multi font VDP
 
 This is a modification of the official firmware for the esp32 co-processor on the AGON.
 
-It is based on version 1.03 RC3 of AGON Quark VDP.
+It is based on version 1.03 RC3 of AGON Quark VDP and will most likely only work with MOS 1.03 RC3
 
-The purpose of this modification is to enable using several 8x16 fonts, for fun and increased readability, especially in high resolution mode 0. 
+The purpose of this modification is to enable bitmap fonts other than the inbuilt official one, for fun and increased readability, especially in high resolution mode 0. 
 
-The actual changes to the official VDP code base are rather minimal, they consist of only a few modifications in the main video.ino file, in agon_fonts.h and the addition of three new fonts (ATARI, Olivetti THIN, IBM VGA) in include files.
+The actual changes to the official VDP code base are minimal, they consist of only a few modifications in the main video.ino file, in agon_fonts.h and the addition of three new fonts (ATARI, Olivetti THIN, IBM VGA) in include files.
 
 ### Usage
 
-The available fonts can be selected by using the added VDU command byte sequence: 
+The available fonts can be selected by using the "Select Font" VDU command byte sequence: 
 
-`VDU 23,0,160,FONTID`
+`VDU 23,26,FONTID,POINTSIZE,WIDTH,HEIGHT`
 
 where FONTID is one of 
 - 0 Agon system font
@@ -22,12 +22,33 @@ where FONTID is one of
 - 2 Olivetti THIN
 - 3 IMB VGA.
 
+Note that for selecting one of the provided "baked in" fonts POINTSIZE, WIDTH and HEIGHT can be any arbitrary value as they will be ignored, but you still have to provide them.
+
+
+The previous version of multi font used the following sequence to select a font. This is deprecated and will be removed soon, please do not use anymore!
+
+`VDU 23,0,160,FONTID`
+
+### User Fonts
+
+From version 1.03 of this mod you can upload fonts from files at runtime.
+
+The process involves two VDU sequences as follows:
+
+- Select Font (VDU 23,26) see above 
+- Define Character (VDU 23,code,byte0,byte1,byte2,byte3,byte4,byte5,byte6,byte7)
+ 
+When uploading from a file, FONTID needs to be 255 and you have to provide POINTSIZE,WIDTH and HEIGHT. After the initial "Select Font" simply proceed to send glyph data using "Define Character"
+
+The fonts folder of this repository contains an example file. BESCII.BIN is a recreation (8x8) of the classic Commodore font. This small version only contains the glyphs for character codes 32-126. A BBCBASIC example demonstrating how to upload this font is provided in the examples folder.
 
 ### Fonts licensing
 
-Fonts licensing: The IBM VGA and Olivetti THIN fonts where taken from the "Ultimate Oldschool PC Font Pack" and are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/)
+Fonts licensing: The IBM VGA and Olivetti THIN fonts where taken from the "Ultimate Oldschool PC Font Pack" (https://int10h.org/oldschool-pc-fonts/) and are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/)
 
 The "Atari ST 8x16 System Font by divVerent" is available on many internet font download sites "free for personal use", if you are the original author and disagree with my use, please let me know!
+
+BESCII is licensed und CCO 1.0 and can be found here: https://github.com/damianvila/font-bescii  
 
 ### Build & install
  

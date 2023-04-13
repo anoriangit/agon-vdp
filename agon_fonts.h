@@ -1,11 +1,21 @@
 // ----------------------------------------------------------------------------
 // Agon VDP multi font version
 // based on 1.03 RC 
-// updated: 8-Apr-2023 gs
+// last updated: 9-Apr-2023 gs
 //
 // CHANGELOG:
+// 1.0
 // - added a number of font related defines at the top
 // - added includes for three fonts: atari_font.h, thin_font.h, ibm_font.h
+// 1.01
+// 9-Apr-2023
+// - renamed AGON_FONT_SIZE to AGON_MAX_FONT_SIZE for clarity
+// - added fontmem_t type and fontmem_t FONTS_MEMORY[] array
+// 1.02
+// - enabled more ram storage for max 4 concurrent fonts in memory (8k)
+// 12/04/2023 changed back to just one user font
+//            font buffer size now 4k
+//            user font id changed to 255    
 // ----------------------------------------------------------------------------
 
 
@@ -22,16 +32,25 @@
 
 #pragma once
 
-#define AGON_FONT_SIZE        2048
+#define AGON_MAX_FONT_SIZE    4096
+#define AGON_MAX_FONT_HEIGHT  16
 
 #define AGON_SYSTEM_FONT_ID   0
 #define AGON_ATARI_FONT_ID    1
 #define AGON_THIN_FONT_ID     2
 #define AGON_IBM_FONT_ID      3
-#define AGON_NUM_FONTS        4
+#define AGON_NUM_FLASH_FONTS  4     // number of "baked in" fonts in flash
+
+#define AGON_USER_FONT_ID     255   // the user font
+
+
+typedef struct fontmem {
+  const uint8_t *bitmap;
+  size_t offset, size;
+} fontmem_t;
 
 namespace fabgl {
-	uint8_t FONT_AGON_DATA[AGON_FONT_SIZE]; 
+	uint8_t FONT_AGON_DATA[AGON_MAX_FONT_SIZE*2]; 
 }
 
 #include "atari_font.h"
@@ -281,7 +300,7 @@ namespace fabgl {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //		
 	};
 
-	extern const FontInfo FONT_AGON = {
+	extern FontInfo const FONT_AGON = {
 		.pointSize = 6,
 		.width     = 8,
 		.height    = 8,
@@ -296,8 +315,35 @@ namespace fabgl {
 		.codepage  = 1252,
 	};
 
-    extern const FontInfo *FONTS_TABLE[AGON_NUM_FONTS] = {
-      &FONT_AGON, &FONT_ATARI, &FONT_THIN, &FONT_IBM
-    };
+  // USER FONT descriptor in RAM: we need to be able to write to this one
+	extern FontInfo FONT_USER = {
+		.pointSize = 6,
+		.width     = 8,
+		.height    = 8,
+		.ascent    = 7,
+		.inleading = 0,
+		.exleading = 0,
+		.flags     = 0,
+		.weight    = 400,
+		.charset   = 255,
+		.data      = FONT_AGON_DATA,
+		.chptr     = nullptr,
+		.codepage  = 1252,
+  };
 
-}
+  // these get passed to fabgl
+  extern FontInfo const *AGON_FONTS_TABLE[] = {
+      &FONT_AGON, &FONT_ATARI, &FONT_THIN, &FONT_IBM, &FONT_USER
+  };
+
+  // these are needed by copy_font()
+  extern fontmem_t AGON_FONTS_MEMORY[] = {
+ 
+      { FONT_AGON_BITMAP, 256, sizeof(FONT_AGON_BITMAP) },
+      { FONT_ATARI_BITMAP, 0, sizeof(FONT_ATARI_BITMAP) },
+      { FONT_THIN_BITMAP, 0, sizeof(FONT_THIN_BITMAP) },
+      { FONT_IBM_BITMAP, 0, sizeof(FONT_IBM_BITMAP) },
+ 
+  };
+
+} // namespace fabgl

@@ -2317,7 +2317,7 @@ namespace fabgl {
 
 	};
 
-	extern const FontInfo FONT_ATARI = {
+	extern FontInfo const FONT_ATARI = {
 		.pointSize = 6,
 		.width     = 8,
 		.height    = 16,

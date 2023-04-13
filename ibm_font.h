@@ -2316,7 +2316,7 @@ namespace fabgl {
 
 	};
 
-	extern const FontInfo FONT_IBM = {
+	extern FontInfo const FONT_IBM = {
 		.pointSize = 6,
 		.width     = 8,
 		.height    = 16,

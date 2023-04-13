@@ -2317,7 +2317,7 @@ namespace fabgl {
 
 	};
 
-	extern const FontInfo FONT_THIN = {
+	extern FontInfo const FONT_THIN = {
 		.pointSize = 6,
 		.width     = 8,
 		.height    = 16,
