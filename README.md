@@ -31,7 +31,7 @@ From version 1.03 of this mod you can upload fonts from files at runtime.
 
 The process involves two VDU sequences as follows:
 
-- Select the user font (255) (VDU 23,26,5...) see above 
+- Select the user font (255) (VDU 23,26,255...) see above 
 - Define Character (VDU 23,code,byte0,byte1,byte2,byte3,byte4,byte5,byte6,byte7)
  
 When uploading from a file, FONTID needs to be 255 and you have to provide POINTSIZE,WIDTH and HEIGHT. After the initial "Select Font" simply proceed to send glyph data using "Define Character"
