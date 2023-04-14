@@ -31,12 +31,14 @@ From version 1.03 of this mod you can upload fonts from files at runtime.
 
 The process involves two VDU sequences as follows:
 
-- Select Font (VDU 23,26) see above 
+- Select the user font (255) (VDU 23,26,5...) see above 
 - Define Character (VDU 23,code,byte0,byte1,byte2,byte3,byte4,byte5,byte6,byte7)
  
 When uploading from a file, FONTID needs to be 255 and you have to provide POINTSIZE,WIDTH and HEIGHT. After the initial "Select Font" simply proceed to send glyph data using "Define Character"
 
 The fonts folder of this repository contains an example file. BESCII.BIN is a recreation (8x8) of the classic Commodore font. This small version only contains the glyphs for character codes 32-126. A BBCBASIC example demonstrating how to upload this font is provided in the examples folder.
+
+The user font stays resident im RAM only. You can switch between it and the flash fonts but after a restart its gone.
 
 ### Fonts licensing
 
