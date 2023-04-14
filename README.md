@@ -1,4 +1,4 @@
-# AGON-VDP (multi font) 1.03
+# AGON-VDP (multi font) 1.03 (based on VDP 1.03 RC4)
 
 ### What is the multi font VDP
 
@@ -24,10 +24,6 @@ where FONTID is one of
 
 Note that for selecting one of the provided "baked in" fonts POINTSIZE, WIDTH and HEIGHT can be any arbitrary value as they will be ignored, but you still have to provide them.
 
-
-The previous version of multi font used the following sequence to select a font. This is deprecated and will be removed soon, please do not use anymore!
-
-`VDU 23,0,160,FONTID`
 
 ### User Fonts
 
