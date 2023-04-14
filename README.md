@@ -4,7 +4,7 @@
 
 This is a modification of the official firmware for the esp32 co-processor on the AGON.
 
-It is based on version 1.03 RC3 of AGON Quark VDP and will most likely only work with MOS 1.03 RC3
+It is based on version 1.03 RC4 of AGON Quark VDP and will most likely only work with MOS 1.03 RC4
 
 The purpose of this modification is to enable bitmap fonts other than the inbuilt official one, for fun and increased readability, especially in high resolution mode 0. 
 
