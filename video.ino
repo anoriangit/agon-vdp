@@ -32,7 +32,7 @@
 //					Damien Guard (Fonts)
 //					Igor Chaves Cananea (VGA Mode Switching)
 // Created:       	22/03/2022
-// Last Updated:	01/04/2023
+// Last Updated:	12/04/2023
 //
 // Modinfo:
 // 11/07/2022:		Baud rate tweaked for Agon Light, HW Flow Control temporarily commented out
@@ -55,14 +55,16 @@
 // 27/03/2023:					+ Fix for sprite system crash
 // 29/03/2023:					+ Typo in boot screen fixed
 // 01/04/2023:					+ Added resetPalette to MODE, timeouts to VDU commands
+// 08/04/2023:				RC4 + Removed delay in readbyte_t, fixed VDP_SCRCHAR, VDP_SCRPIXEL
+// 12/04/2023:					+ Fixed bug in play_note
 
 #include "fabgl.h"
 #include "HardwareSerial.h"
 #include "ESP32Time.h"
 
-#define VERSION 1
-#define REVISION 3
-#define RC 3
+#define VERSION			1
+#define REVISION		3
+#define RC				4
 
 #define DEBUG 0     // Serial Debug Mode: 1 = enable
 #define SERIALKB 0  // Serial Keyboard: 1 = enable (Experimental)
@@ -229,15 +231,15 @@ void debug_log(const char *format, ...) {
 // - Byte value (0 to 255) if value read, otherwise -1
 //
 int readByte_t() {
-  int i;
+	int	i;
+	unsigned long t = millis();
 
-  for (i = 0; i < 25; i++) {
-    if (ESPSerial.available() > 0) {
-      return ESPSerial.read();
-    }
-    delay(10);
-  }
-  return -1;
+	while(millis() - t < 1000) {
+		if(ESPSerial.available() > 0) {
+			return ESPSerial.read();
+		}
+	}
+	return -1;
 }
 
 // Read an unsigned word from the serial port, with a timeout
@@ -362,28 +364,28 @@ void sendScreenChar(int x, int y) {
 // Send a pixel value back to MOS
 //
 void sendScreenPixel(int x, int y) {
-  RGB888 pixel;
-  byte pixelIndex = 0;
-  Point p = translate(scale(x, y));
-  //
-  // Do some bounds checking first
-  //
-  if (p.X >= 0 && p.Y >= 0 && p.X < Canvas->getWidth() && p.Y < Canvas->getHeight()) {
-    pixel = Canvas->getPixel(p.X, p.Y);
-    for (byte i = 0; i < 80; i++) {
-      if (colourLookup[i] == pixel) {
-        pixelIndex = i;
-        break;
-      }
-    }
-  }
-  byte packet[] = {
-    pixel.R,  // Send the colour components
-    pixel.G,
-    pixel.B,
-    pixelIndex,  // And the pixel index in the palette
-  };
-  send_packet(PACKET_SCRPIXEL, sizeof packet, packet);
+	RGB888	pixel;
+	byte 	pixelIndex = 0;
+	Point	p = translate(scale(x, y));
+	//
+	// Do some bounds checking first
+	//
+	if(p.X >= 0 && p.Y >= 0 && p.X < Canvas->getWidth() && p.Y < Canvas->getHeight()) {
+		pixel = Canvas->getPixel(p.X, p.Y);
+		for(byte i = 0; i < VGAColourDepth; i++) {
+			if(colourLookup[palette[i]] == pixel) {
+				pixelIndex = i;
+				break;
+			}
+		}
+	}	
+	byte packet[] = {
+		pixel.R,	// Send the colour components
+		pixel.G,
+		pixel.B,
+		pixelIndex,	// And the pixel index in the palette
+	};
+	send_packet(PACKET_SCRPIXEL, sizeof packet, packet);	
 }
 
 // Send an audio acknowledgement
@@ -1305,89 +1307,48 @@ void vdu_sys_udg(byte c) {
 void vdu_sys_video() {
   int mode = readByte_t();
 
-  switch (mode) {
-    case VDP_GP:
-      {                     // VDU 23, 0, &80
-        sendGeneralPoll();  // Send a general poll packet
-      }
-      break;
-    case VDP_KEYCODE:
-      {  // VDU 23, 0, &81, layout
-        vdu_sys_video_kblayout();
-      }
-      break;
-    case VDP_CURSOR:
-      {                        // VDU 23, 0, &82
-        sendCursorPosition();  // Send cursor position
-      }
-      break;
-    case VDP_SCRCHAR:
-      {                        // VDU 23, 0, &83, x; y;
-        int x = readWord_t();  // Get character at screen position x, y
-        if (x > 0) {
-          int y = readWord_t();
-          if (y > 0) {
-            sendScreenChar(x, y);
-          }
-        }
-      }
-      break;
-    case VDP_SCRPIXEL:
-      {                        // VDU 23, 0, &84, x; y;
-        int x = readWord_t();  // Get pixel value at screen position x, y
-        if (x > 0) {
-          int y = readWord_t();
-          if (y > 0) {
-            sendScreenPixel((short)x, (short)y);
-          }
-        }
-      }
-      break;
-    case VDP_AUDIO:
-      {  // VDU 23, 0, &85, channel, waveform, volume, freq; duration;
-        vdu_sys_audio();
-      }
-      break;
-    case VDP_MODE:
-      {                         // VDU 23, 0, &86
-        sendModeInformation();  // Send mode information (screen dimensions, etc)
-      }
-      break;
-    case VDP_RTC:
-      {                        // VDU 23, 0, &87, mode
-        vdu_sys_video_time();  // Send time information
-      }
-      break;
-    case VDP_KEYSTATE:
-      {  // VDU 23, 0, &88, repeatRate; repeatDelay; status
-        vdu_sys_keystate();
-      }
-      break;
-    case VDP_LOGICALCOORDS:
-      {                        // VDU 23, 0, &C0, n
-        int b = readByte_t();  // Set logical coord mode
-        if (b >= 0) {
-          logicalCoords = b;
-        }
-      }
-      break;
-    case VDP_TERMINALMODE:
-      {                        // VDU 23, 0, &FF
-        switchTerminalMode();  // Switch to terminal mode
-      }
-      break;
-    case VDP_SETFONT:
-      {
-        // DEPRECATED
-        int id = readByte_t();
-        if (id >= 0 && id < AGON_NUM_FLASH_FONTS) {
-          copy_font(id);
-          CURRENT_FONT = (fabgl::FontInfo *)fabgl::AGON_FONTS_TABLE[id];
-          set_mode(videoMode);  // need to force a new canvas to really make this "stick"
-        }
-      }
-      break;
-  }
+  	switch(mode) {
+		case VDP_GP: {					// VDU 23, 0, &80
+			sendGeneralPoll();			// Send a general poll packet
+		}	break;
+		case VDP_KEYCODE: {				// VDU 23, 0, &81, layout
+			vdu_sys_video_kblayout();
+		}	break;
+		case VDP_CURSOR: {				// VDU 23, 0, &82
+			sendCursorPosition();		// Send cursor position
+		}	break;
+		case VDP_SCRCHAR: {				// VDU 23, 0, &83, x; y;
+			int x = readWord_t();		// Get character at screen position x, y
+			int y = readWord_t();
+			sendScreenChar(x, y);
+		}	break;
+		case VDP_SCRPIXEL: {			// VDU 23, 0, &84, x; y;
+			int x = readWord_t();		// Get pixel value at screen position x, y
+			int y = readWord_t();
+			sendScreenPixel((short)x, (short)y);
+		} 	break;		
+		case VDP_AUDIO: {				// VDU 23, 0, &85, channel, waveform, volume, freq; duration;
+			vdu_sys_audio();
+		}	break;
+		case VDP_MODE: {				// VDU 23, 0, &86
+			sendModeInformation();		// Send mode information (screen dimensions, etc)
+		}	break;
+		case VDP_RTC: {					// VDU 23, 0, &87, mode
+			vdu_sys_video_time();		// Send time information
+		}	break;
+		case VDP_KEYSTATE: {			// VDU 23, 0, &88, repeatRate; repeatDelay; status
+			vdu_sys_keystate();
+		}	break;
+		case VDP_LOGICALCOORDS: {		// VDU 23, 0, &C0, n
+			int b = readByte_t();		// Set logical coord mode
+			if(b >= 0) {
+				logicalCoords = b;	
+			}
+		}	break;
+		case VDP_TERMINALMODE: {		// VDU 23, 0, &FF
+			switchTerminalMode(); 		// Switch to terminal mode
+		}	break;
+  	}
 }
 
 // Do some audio
@@ -1505,10 +1466,10 @@ void vdu_sys_scroll() {
 // Play a note
 //
 word play_note(byte channel, byte volume, word frequency, word duration) {
-  if (channel >= 0 && channel < AUDIO_CHANNELS) {
-    return audio_channels[channel]->play_note(volume, frequency, duration);
-  }
-  return 0;
+	if(channel >=0 && channel < AUDIO_CHANNELS) {
+		return audio_channels[channel]->play_note(volume, frequency, duration);
+	}
+	return 1;
 }
 
 // Sprite Engine
