@@ -39,7 +39,9 @@
 #define AGON_ATARI_FONT_ID    1
 #define AGON_THIN_FONT_ID     2
 #define AGON_IBM_FONT_ID      3
-#define AGON_NUM_FLASH_FONTS  4     // number of "baked in" fonts in flash
+#define AGON_FAB9x15_FONT_ID  4
+
+#define AGON_NUM_FLASH_FONTS  5     // number of "baked in" fonts in flash
 
 #define AGON_USER_FONT_ID     255   // the user font
 
@@ -56,7 +58,7 @@ namespace fabgl {
 #include "atari_font.h"
 #include "thin_font.h"
 #include "ibm_font.h"
-
+#include "fabfont_9x15.h"
 
 namespace fabgl {
 
@@ -331,9 +333,10 @@ namespace fabgl {
 		.codepage  = 1252,
   };
 
+
   // these get passed to fabgl
   extern FontInfo const *AGON_FONTS_TABLE[] = {
-      &FONT_AGON, &FONT_ATARI, &FONT_THIN, &FONT_IBM, &FONT_USER
+      &FONT_AGON, &FONT_ATARI, &FONT_THIN, &FONT_IBM, &FAB_FONT_9x15, &FONT_USER
   };
 
   // these are needed by copy_font()
@@ -343,7 +346,8 @@ namespace fabgl {
       { FONT_ATARI_BITMAP, 0, sizeof(FONT_ATARI_BITMAP) },
       { FONT_THIN_BITMAP, 0, sizeof(FONT_THIN_BITMAP) },
       { FONT_IBM_BITMAP, 0, sizeof(FONT_IBM_BITMAP) },
+      { FONT_9x15_BITMAP, 0, sizeof(FONT_9x15_BITMAP) },
  
-  };
+  };                                        
 
 } // namespace fabgl

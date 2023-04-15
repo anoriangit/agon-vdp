@@ -58,6 +58,7 @@
 // 08/04/2023:				RC4 + Removed delay in readbyte_t, fixed VDP_SCRCHAR, VDP_SCRPIXEL
 // 12/04/2023:					+ Fixed bug in play_note
 
+
 #include "fabgl.h"
 #include "HardwareSerial.h"
 #include "ESP32Time.h"
@@ -205,7 +206,7 @@ void boot_screen() {
 #if RC > 0
   printFmt(" RC%d", RC);
 #endif
-  printFmt(" (multi font %d.%02d)\n\r", VDP_MF_VER / 100, VDP_MF_VER % 100);
+  printFmt(" (multi font %d.%02d%c)\n\r", VDP_MF_VER / 100, VDP_MF_VER % 100, VDP_MF_REV);
 }
 
 // Debug printf to PC
@@ -1284,18 +1285,24 @@ void vdu_sys_udg(byte c) {
     buffer[i] = b;
   }
 
-  // Only 8 width and 8-16 height fonts suported currently
-  // For heights between 9 and 16 it is required to always
-  // pass in the full 8 bytes to the VDU call anyway!
+  // Only 8 width and 8-16 height fonts are currently supported
+  // For heights between 9 and 16 it is required to
+  // pass in the full 8 bytes with the VDU call anyway!
   if (CURRENT_FONT->height == 8) {
     memcpy((void *)&CURRENT_FONT->data[c * 8], buffer, 8);
   } else if (CURRENT_FONT->height > 8 && CURRENT_FONT->height <= 16) {
     if (c != last) {
-      memcpy((void *)&CURRENT_FONT->data[c * CURRENT_FONT->height], buffer, 8);
+      int index = c * CURRENT_FONT->height;
+      if(index + 8 <= AGON_MAX_FONT_SIZE)
+        memcpy((void *)&CURRENT_FONT->data[index], buffer, 8);
+      
       last = c;
     } else {
       size_t r = (CURRENT_FONT->height == 16) ? (8) : (CURRENT_FONT->height % 8);
-      memcpy((void *)&CURRENT_FONT->data[c * CURRENT_FONT->height + 8], buffer, r);
+      int index = c * CURRENT_FONT->height + 8;
+      if(index + r <= AGON_MAX_FONT_SIZE)
+        memcpy((void *)&CURRENT_FONT->data[index], buffer, r);
+      
       last = -1;
     }
   }

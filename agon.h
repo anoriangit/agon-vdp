@@ -27,6 +27,7 @@
 #pragma once
 
 #define VDP_MF_VER 103
+#define VDP_MF_REV 97     // a
 
 #define	ESPSerial Serial2
 
