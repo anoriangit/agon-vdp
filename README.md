@@ -18,10 +18,11 @@ The available fonts can be selected by using the "Select Font" VDU command byte 
 
 where FONTID is one of 
 - 0 Agon system font
-- 1 ATARI
-- 2 Olivetti THIN
-- 3 IMB VGA
-- 4 FONT9x15 (only available in BIG_FONTS builds, see below)
+- 1	ATARI
+- 2	Olivetti THIN
+- 3	IMB VGA
+- 4	FONT9x15 (only available in BIG_FONTS builds, see below)
+- 255 USER font
 
 Note that for selecting one of the provided "baked in" fonts, POINTSIZE, WIDTH and HEIGHT can be any arbitrary value as they will be ignored, but you still have to provide them.
 
@@ -30,7 +31,7 @@ Note that for selecting one of the provided "baked in" fonts, POINTSIZE, WIDTH a
 This version of the VDP can be built enabling a feature named BIG_FONTS
 Enabling this will increase the font buffer in RAM from the default 2k to 8k. This allows using fonts with dimensions of up to 16x16.
 
-Note that, without BIG_FONTS support, even 8x16 fonts are limited to supporting ASCII codes ranging from 32 to 127. While this will be ok for many applications it might not be acceptable to some. In this case you will have to limit yourself to using the standard 8x8 font size (or smaller).
+Note that, without BIG_FONTS support, even 8x16 fonts are limited to supporting ASCII codes ranging from 32 to 127. While this will be ok for many applications it might not be acceptable to all. In this case you will have to limit yourself to using the standard 8x8 font size (or smaller).
 
 ### User Fonts
 
