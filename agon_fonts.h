@@ -16,6 +16,10 @@
 // 12/04/2023 changed back to just one user font
 //            font buffer size now 4k
 //            user font id changed to 255    
+// 16/04/2023 1.03b
+//	- added BIG_FONTS #define for 16x16 fonts (uses 16k of RAM in total)
+// 17/04/2023 1.03c 
+//	- removed double buffering for saving user fonts (way too much RAM use)
 // ----------------------------------------------------------------------------
 
 
@@ -32,16 +36,29 @@
 
 #pragma once
 
+
+#define BIG_FONTS 1
+
+// BIG_FONTS = max 16x16 = 8k
+#ifdef BIG_FONTS
+#define AGON_MAX_FONT_SIZE    8192
+#else
 #define AGON_MAX_FONT_SIZE    4096
+#endif
+
 #define AGON_MAX_FONT_HEIGHT  16
 
 #define AGON_SYSTEM_FONT_ID   0
 #define AGON_ATARI_FONT_ID    1
 #define AGON_THIN_FONT_ID     2
 #define AGON_IBM_FONT_ID      3
-#define AGON_FAB9x15_FONT_ID  4
 
-#define AGON_NUM_FLASH_FONTS  5     // number of "baked in" fonts in flash
+#ifdef BIG_FONTS
+#define AGON_FAB9x15_FONT_ID  4
+#define AGON_NUM_FLASH_FONTS  5
+#else
+#define AGON_NUM_FLASH_FONTS  4
+#endif
 
 #define AGON_USER_FONT_ID     255   // the user font
 
@@ -52,7 +69,7 @@ typedef struct fontmem {
 } fontmem_t;
 
 namespace fabgl {
-	uint8_t FONT_AGON_DATA[AGON_MAX_FONT_SIZE*2]; 
+	uint8_t FONT_AGON_DATA[AGON_MAX_FONT_SIZE]; 
 }
 
 #include "atari_font.h"

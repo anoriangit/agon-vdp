@@ -1,7 +1,7 @@
 // ----------------------------------------------------------------------------
 // Agon VDP multi font version
 // based on 1.03 RC
-// last bupdated: 13-Apr-2023 gs
+// last bupdated: 17-Apr-2023 gs
 //
 // CHANGELOG:
 // This is modified from the original as follows
@@ -20,9 +20,13 @@
 // - modified UDG upload to enable processing of more than 8 bytes
 // 12/04/2023
 // - display reset (via set_mode()) no always happens when switching fonts
-// 13/04/2023
+// 13/04/2023 1.03b
 // - now creates backup copy of user font bitmap before switching it out
 // - adapted get_screen_char() to handle variable font heights
+// 17/04/2023 1.03c
+// - many improvements to the "Define Character" VDU
+// - removed backup copies of user font (too much RAM usage)
+// - added another fix to get_screen_char()
 // ----------------------------------------------------------------------------
 
 
@@ -501,7 +505,10 @@ char get_screen_char(int px, int py) {
 
   // Do some bounds checking first
   //
-  if (px < 0 || py < 0 || px >= Canvas->getWidth() - 8 || py >= Canvas->getHeight() - 8) {
+  if (px < 0 || py < 0 || 
+    	px >= Canvas->getWidth() - CURRENT_FONT->width || 
+      py >= Canvas->getHeight() - CURRENT_FONT->height) {
+
     return 0;
   }
 
@@ -1222,9 +1229,11 @@ void vdu_sys() {
           if (id < AGON_NUM_FLASH_FONTS) {
 
             // if we are switching out the user font then we save its content to the backup area first
+            // probably obsolete as it turns out that we simply don't have enough RAM on the D4
+            /*
             if(CURRENT_FONT == fabgl::AGON_FONTS_TABLE[AGON_NUM_FLASH_FONTS]) {
               memcpy(fabgl::FONT_AGON_DATA + AGON_MAX_FONT_SIZE, fabgl::FONT_AGON_DATA, AGON_MAX_FONT_SIZE );
-            }
+            } */
 
             copy_font(id);
             CURRENT_FONT = fabgl::AGON_FONTS_TABLE[id];
@@ -1235,7 +1244,8 @@ void vdu_sys() {
             fabgl::FontInfo *USER_FONT = (fabgl::FontInfo *)fabgl::AGON_FONTS_TABLE[id];
 
             // restore the user font bitmap data from the backup area
-            memcpy(fabgl::FONT_AGON_DATA, fabgl::FONT_AGON_DATA + AGON_MAX_FONT_SIZE, AGON_MAX_FONT_SIZE );
+            // see note above
+            // memcpy(fabgl::FONT_AGON_DATA, fabgl::FONT_AGON_DATA + AGON_MAX_FONT_SIZE, AGON_MAX_FONT_SIZE );
 
             if(size > 0)
               USER_FONT->pointSize = size;
@@ -1273,7 +1283,10 @@ void vdu_sys() {
 // - c: The character to redefine
 //
 void vdu_sys_udg(byte c) {
-  static int last = -1;
+  static int last_c = -1;
+  static int c_index = 0;
+  static int bytes_remaining;
+
   uint8_t buffer[8];
   int b;
 
@@ -1285,27 +1298,43 @@ void vdu_sys_udg(byte c) {
     buffer[i] = b;
   }
 
-  // Only 8 width and 8-16 height fonts are currently supported
-  // For heights between 9 and 16 it is required to
-  // pass in the full 8 bytes with the VDU call anyway!
-  if (CURRENT_FONT->height == 8) {
-    memcpy((void *)&CURRENT_FONT->data[c * 8], buffer, 8);
-  } else if (CURRENT_FONT->height > 8 && CURRENT_FONT->height <= 16) {
-    if (c != last) {
-      int index = c * CURRENT_FONT->height;
-      if(index + 8 <= AGON_MAX_FONT_SIZE)
-        memcpy((void *)&CURRENT_FONT->data[index], buffer, 8);
-      
-      last = c;
+  // Up to 16 width and up to 16 height fonts are currently supported
+  // Alway pass in the full 8 bytes with the VDU call anyway even if
+  // your actual required number of bytes is not evenly dividable by 8!
+
+  int columns = (CURRENT_FONT->width + 8 - 1) / 8;  // aka bytes per row
+  int rows = CURRENT_FONT->height;
+  int bytes_per_glyph = columns * rows;
+
+  if(bytes_per_glyph <= 8) {
+    // just one single copy needed per glyph
+    memcpy((void *)&CURRENT_FONT->data[c * 8], buffer, bytes_per_glyph);
+  } else {
+    // we'll need several passes to receive&copy all bytes for one single glyph
+    if(c != last_c) {
+      // first pass for this character code
+      bytes_remaining = bytes_per_glyph;
+      c_index = c * bytes_per_glyph;
+      if(c_index + 8 <= AGON_MAX_FONT_SIZE) {
+        memcpy((void *)&CURRENT_FONT->data[c_index], buffer, 8);
+        c_index += 8;
+        bytes_remaining -= 8;
+      }
+      last_c = c;
     } else {
-      size_t r = (CURRENT_FONT->height == 16) ? (8) : (CURRENT_FONT->height % 8);
-      int index = c * CURRENT_FONT->height + 8;
-      if(index + r <= AGON_MAX_FONT_SIZE)
-        memcpy((void *)&CURRENT_FONT->data[index], buffer, r);
-      
-      last = -1;
+      // ... more blocks of 8 (or less) bytes for the same character code
+      int n = min(bytes_remaining, 8);
+      if(c_index + n <= AGON_MAX_FONT_SIZE) {
+        memcpy((void *)&CURRENT_FONT->data[c_index], buffer, n);
+        c_index += n;
+        bytes_remaining -= n;
+      }
+
+      if(bytes_remaining == 0)
+        last_c = -1;  // done with this char code
     }
   }
+
 }
 
 // VDU 23,0: VDP control
