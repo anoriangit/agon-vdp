@@ -1299,8 +1299,15 @@ void vdu_sys_udg(byte c) {
   }
 
   // Up to 16 width and up to 16 height fonts are currently supported
-  // Alway pass in the full 8 bytes with the VDU call anyway even if
-  // your actual required number of bytes is not evenly dividable by 8!
+  // when the BIG_FONTS #define has been enabled for building the VDU
+  // Without BIG_FONT you can use up to 256 8x8 characters or 128*8x16
+  
+  // NOTE 1: the code below is resilient against trying to upload data
+  // that exceeds the font buffer limits described above. Excess data
+  // will simply be dropped (your display might look funny though)
+  
+  // NOTE 2: Alway pass in the full 8 bytes with the VDU call anyway even
+  // if your actual required number of bytes is not evenly dividable by 8!
 
   int columns = (CURRENT_FONT->width + 8 - 1) / 8;  // aka bytes per row
   int rows = CURRENT_FONT->height;

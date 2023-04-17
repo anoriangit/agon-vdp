@@ -20,10 +20,17 @@ where FONTID is one of
 - 0 Agon system font
 - 1 ATARI
 - 2 Olivetti THIN
-- 3 IMB VGA.
+- 3 IMB VGA
+- 4 FONT9x15 (only available in BIG_FONTS builds, see below)
 
-Note that for selecting one of the provided "baked in" fonts POINTSIZE, WIDTH and HEIGHT can be any arbitrary value as they will be ignored, but you still have to provide them.
+Note that for selecting one of the provided "baked in" fonts, POINTSIZE, WIDTH and HEIGHT can be any arbitrary value as they will be ignored, but you still have to provide them.
 
+### Big Fonts
+
+This version of the VDP can be built enabling a feature named BIG_FONTS
+Enabling this will increase the font buffer in RAM from the default 2k to 8k. This allows using fonts with dimensions of up to 16x16.
+
+Note that, without BIG_FONTS support, even 8x16 fonts are limited to supporting ASCII codes ranging from 32 to 127. While this will be ok for many applications it might not be acceptable to some. In this case you will have to limit yourself to using the standard 8x8 font size (or smaller).
 
 ### User Fonts
 
@@ -40,11 +47,22 @@ The fonts folder of this repository contains an example file. BESCII.BIN is a re
 
 The user font stays resident im RAM only. You can switch between it and the flash fonts but after a restart its gone.
 
+### Tools
+
+The repository includes the source code for two tools
+
+- fontsel
+- fontload
+
+These are small AGON MOS applications for selecting fonts (and video modes) and uploading user fonts from files. Please see the accompanying documents inside the respective subfolders for more information.
+
 ### Fonts licensing
 
 Fonts licensing: The IBM VGA and Olivetti THIN fonts where taken from the "Ultimate Oldschool PC Font Pack" (https://int10h.org/oldschool-pc-fonts/) and are licensed under the Creative Commons Attribution-ShareAlike 4.0 International License (http://creativecommons.org/licenses/by-sa/4.0/)
 
 The "Atari ST 8x16 System Font by divVerent" is available on many internet font download sites "free for personal use", if you are the original author and disagree with my use, please let me know!
+
+Font9x15 is included with the fabgl library used by the VDP and licensed accordingly.
 
 BESCII is licensed und CCO 1.0 and can be found here: https://github.com/damianvila/font-bescii  
 

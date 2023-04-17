@@ -20,6 +20,10 @@
 //	- added BIG_FONTS #define for 16x16 fonts (uses 16k of RAM in total)
 // 17/04/2023 1.03c 
 //	- removed double buffering for saving user fonts (way too much RAM use)
+//  - reduced the standard buffer (without BIG_FONTS support) back down
+//    to 2k as per the original VDP. This should remove issues with running
+//    out off RAM on the esp32 when the sprite system is used in Mode 3
+//    Note that this limits 8x16 fonts to max. ASCII 127 
 // ----------------------------------------------------------------------------
 
 
@@ -37,13 +41,15 @@
 #pragma once
 
 
-#define BIG_FONTS 1
+// #define BIG_FONTS 1
 
 // BIG_FONTS = max 16x16 = 8k
 #ifdef BIG_FONTS
 #define AGON_MAX_FONT_SIZE    8192
+#define AGON_MAX_FONT_WIDTH	  16
 #else
-#define AGON_MAX_FONT_SIZE    4096
+#define AGON_MAX_FONT_SIZE    2048
+#define AGON_MAX_FONT_WIDTH	  8
 #endif
 
 #define AGON_MAX_FONT_HEIGHT  16
@@ -353,7 +359,11 @@ namespace fabgl {
 
   // these get passed to fabgl
   extern FontInfo const *AGON_FONTS_TABLE[] = {
+#ifdef BIG_FONTS
       &FONT_AGON, &FONT_ATARI, &FONT_THIN, &FONT_IBM, &FAB_FONT_9x15, &FONT_USER
+#else
+      &FONT_AGON, &FONT_ATARI, &FONT_THIN, &FONT_IBM, &FONT_USER
+#endif
   };
 
   // these are needed by copy_font()
