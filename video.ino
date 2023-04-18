@@ -36,7 +36,7 @@
 //					Damien Guard (Fonts)
 //					Igor Chaves Cananea (VGA Mode Switching)
 // Created:       	22/03/2022
-// Last Updated:	12/04/2023
+// Last Updated:	17/04/2023
 //
 // Modinfo:
 // 11/07/2022:		Baud rate tweaked for Agon Light, HW Flow Control temporarily commented out
@@ -61,7 +61,8 @@
 // 01/04/2023:					+ Added resetPalette to MODE, timeouts to VDU commands
 // 08/04/2023:				RC4 + Removed delay in readbyte_t, fixed VDP_SCRCHAR, VDP_SCRPIXEL
 // 12/04/2023:					+ Fixed bug in play_note
-
+// 13/04/2023:					+ Fixed bootup fail with no keyboard
+// 17/04/2023:				RC5 + Moved wait_completion in vdu so that it only executes after graphical operations
 
 #include "fabgl.h"
 #include "HardwareSerial.h"
@@ -69,7 +70,7 @@
 
 #define VERSION			1
 #define REVISION		3
-#define RC				4
+#define RC				5
 
 #define DEBUG 0     // Serial Debug Mode: 1 = enable
 #define SERIALKB 0  // Serial Keyboard: 1 = enable (Experimental)
@@ -132,36 +133,34 @@ HardwareSerial DBGSerial(0);
 #endif
 
 void setup() {
-  disableCore0WDT();
-  delay(200);  // Disable the watchdog timers
-  disableCore1WDT();
-  delay(200);
-#if DEBUG == 1 || SERIALKB == 1
-  DBGSerial.begin(500000, SERIAL_8N1, 3, 1);
-#endif
-  ESPSerial.end();
-  ESPSerial.setRxBufferSize(UART_RX_SIZE);  // Can't be called when running
-  ESPSerial.begin(UART_BR, SERIAL_8N1, UART_RX, UART_TX);
-#if USE_HWFLOW == 1
-  ESPSerial.setHwFlowCtrlMode(HW_FLOWCTRL_RTS, 64);         // Can be called whenever
-  ESPSerial.setPins(UART_NA, UART_NA, UART_CTS, UART_RTS);  // Must be called after begin
-#else
-  pinMode(UART_RTS, OUTPUT);
-  pinMode(UART_CTS, INPUT);
-  setRTSStatus(true);
-#endif
-  PS2Controller.begin(PS2Preset::KeyboardPort0, KbdMode::CreateVirtualKeysQueue);
-  PS2Controller.keyboard()->setLayout(&fabgl::UKLayout);
-  PS2Controller.keyboard()->setCodePage(fabgl::CodePages::get(1252));
-  PS2Controller.keyboard()->setTypematicRateAndDelay(kbRepeatRate, kbRepeatDelay);
-  init_audio();
+	disableCore0WDT(); delay(200);								// Disable the watchdog timers
+	disableCore1WDT(); delay(200);
+	#if DEBUG == 1 || SERIALKB == 1
+	DBGSerial.begin(500000, SERIAL_8N1, 3, 1);
+	#endif 
+	ESPSerial.end();
+ 	ESPSerial.setRxBufferSize(UART_RX_SIZE);					// Can't be called when running
+ 	ESPSerial.begin(UART_BR, SERIAL_8N1, UART_RX, UART_TX);
+	#if USE_HWFLOW == 1
+	ESPSerial.setHwFlowCtrlMode(HW_FLOWCTRL_RTS, 64);			// Can be called whenever
+	ESPSerial.setPins(UART_NA, UART_NA, UART_CTS, UART_RTS);	// Must be called after begin
+	#else 
+	pinMode(UART_RTS, OUTPUT);
+	pinMode(UART_CTS, INPUT);	
+	setRTSStatus(true);
+	#endif
+	wait_eZ80();
+ 	PS2Controller.begin(PS2Preset::KeyboardPort0, KbdMode::CreateVirtualKeysQueue);
+	PS2Controller.keyboard()->setLayout(&fabgl::UKLayout);
+	PS2Controller.keyboard()->setCodePage(fabgl::CodePages::get(1252));
+	PS2Controller.keyboard()->setTypematicRateAndDelay(kbRepeatRate, kbRepeatDelay);
+	init_audio();
 
   CURRENT_FONT = fabgl::AGON_FONTS_TABLE[AGON_SYSTEM_FONT_ID];
   copy_font(AGON_SYSTEM_FONT_ID);
 
-  set_mode(1);
-  boot_screen();
-  wait_eZ80();
+ 	set_mode(1);
+	boot_screen();
 }
 
 // The main loop
@@ -329,19 +328,21 @@ void audio_driver(void *parameters) {
 // Wait for eZ80 to initialise
 //
 void wait_eZ80() {
-  while (!initialised) {
-    if (ESPSerial.available() > 0) {
-#if USE_HWFLOW == 0
-      if (ESPSerial.available() > UART_RX_THRESH) {
-        setRTSStatus(false);
-      }
-#endif
-      byte c = ESPSerial.read();  // Only handle VDU 23 packets
-      if (c == 23) {
-        vdu_sys();
-      }
-    }
-  }
+	debug_log("wait_eZ80: Start\n\r");
+	while(!initialised) {
+    	if(ESPSerial.available() > 0) {
+			#if USE_HWFLOW == 0
+			if(ESPSerial.available() > UART_RX_THRESH) {
+				setRTSStatus(false);		
+			}
+			#endif 		
+			byte c = ESPSerial.read();	// Only handle VDU 23 packets
+			if(c == 23) {
+				vdu_sys();
+			}
+		}
+	}
+	debug_log("wait_eZ80: End\n\r");
 }
 
 // Send the cursor position back to MOS
@@ -894,73 +895,74 @@ Point translate(int X, int Y) {
 }
 
 void vdu(byte c) {
-  if (c >= 0x20 && c != 0x7F) {
-    Canvas->setPenColor(tfg);
-    Canvas->setBrushColor(tbg);
-    Canvas->drawChar(charX, charY, c);
-    cursorRight();
-  } else {
-    switch (c) {
-      case 0x08:  // Cursor Left
-        cursorLeft();
-        break;
-      case 0x09:  // Cursor Right
-        cursorRight();
-        break;
-      case 0x0A:  // Cursor Down
-        cursorDown();
-        break;
-      case 0x0B:  // Cursor Up
-        cursorUp();
-        break;
-      case 0x0C:  // CLS
-        cls();
-        break;
-      case 0x0D:  // CR
-        cursorHome();
-        break;
-      case 0x0E:  // Paged mode ON
-        pagedMode = true;
-        break;
-      case 0x0F:  // Paged mode OFF
-        pagedMode = false;
-        break;
-      case 0x10:  // CLG
-        clg();
-        break;
-      case 0x11:  // COLOUR
-        vdu_colour();
-        break;
-      case 0x12:  // GCOL
-        vdu_gcol();
-        break;
-      case 0x13:  // Define Logical Colour
-        vdu_palette();
-        break;
-      case 0x16:  // Mode
-        vdu_mode();
-        break;
-      case 0x17:  // VDU 23
-        vdu_sys();
-        break;
-      case 0x19:  // PLOT
-        vdu_plot();
-        break;
-      case 0x1D:  // VDU_29
-        vdu_origin();
-      case 0x1E:  // Home
-        cursorHome();
-        break;
-      case 0x1F:  // TAB(X,Y)
-        cursorTab();
-        break;
-      case 0x7F:  // Backspace
-        cursorLeft();
-        Canvas->drawChar(charX, charY, ' ');
-        break;
-    }
-  }
-  Canvas->waitCompletion(false);
+	if(c >= 0x20 && c != 0x7F) {
+		Canvas->setPenColor(tfg);
+		Canvas->setBrushColor(tbg);
+ 		Canvas->drawChar(charX, charY, c);
+   		cursorRight();
+	}
+	else {
+		switch(c) {
+			case 0x08:  // Cursor Left
+				cursorLeft();
+				break;
+			case 0x09:  // Cursor Right
+				cursorRight();
+				break;
+			case 0x0A:  // Cursor Down
+				cursorDown();
+				break;
+			case 0x0B:  // Cursor Up
+				cursorUp();
+				break;
+			case 0x0C:  // CLS
+				cls();
+				break;
+			case 0x0D:  // CR
+				cursorHome();
+				break;
+			case 0x0E:	// Paged mode ON
+				pagedMode = true;
+				break;
+			case 0x0F:	// Paged mode OFF
+				pagedMode = false;
+				break;
+			case 0x10:	// CLG
+				clg();
+				break;
+			case 0x11:	// COLOUR
+				vdu_colour();
+				break;
+			case 0x12:  // GCOL
+				vdu_gcol();
+				break;
+			case 0x13:	// Define Logical Colour
+				vdu_palette();
+				break;
+			case 0x16:  // Mode
+				vdu_mode();
+				break;
+			case 0x17:  // VDU 23
+				vdu_sys();
+				break;
+			case 0x19:  // PLOT
+				vdu_plot();
+				break;
+			case 0x1D:	// VDU_29
+				vdu_origin();
+			case 0x1E:  // Home
+				cursorHome();
+				break;
+			case 0x1F:	// TAB(X,Y)
+				cursorTab();
+				break;
+			case 0x7F:  // Backspace
+				cursorLeft();
+				Canvas->drawChar(charX, charY, ' ');
+				break;
+		}
+		Canvas->waitCompletion(false);
+	}
 }
 
 // Handle the cursor
