@@ -9,3 +9,4 @@ build/esp32.esp32.esp32/video.ino.elf
 build/esp32.esp32.esp32/video.ino.map
 build/esp32.esp32.esp32/video.ino.partitions.bin
 fonts/unscii8x16.fbm
+CHANGELOG.md.backup

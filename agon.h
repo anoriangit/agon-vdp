@@ -1,16 +1,3 @@
-// ----------------------------------------------------------------------------
-// Agon VDP multi font version
-// based on 1.03 RC 
-// updated: 9-Apr-2023 gs
-//
-// CHANGELOG:
-// 8-Apr-2023 (gs)
-// added define #define VDP_SETFONT 0xA0 
-// 9-Apr-2023 (gs)
-// added define VDP_MF_VER  (multi font version)
-// 12/04/2023   updated VDP_MF_VER to 103 (gs)
-// ----------------------------------------------------------------------------
-
 //
 // Title:	        Agon Video BIOS - Function prototypes
 // Author:        	Dean Belfield

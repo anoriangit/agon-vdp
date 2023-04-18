@@ -1,40 +1,9 @@
-// ----------------------------------------------------------------------------
-// Agon VDP multi font version
-// based on 1.03 RC
-// last bupdated: 17-Apr-2023 gs
-//
-// CHANGELOG:
-// This is modified from the original as follows
-//
-// 8-Apr-2023
-// - fabgl::FontInfo *CURRENT_FONT pointer added
-// - modified copy_font() to take an int parameter: font_id
-// - changed call to copy_font to select font 0 at startup
-// - adapted change_mode() to call Canvas->selectFont(CURRENT_FONT);
-// - implemented VDP_SETFONT (VDU 23,0,160,id) in vdu_sys_video()
-// 9-Apr-2023 - modified copy_font() to used the FONTS_MEMORY descriptors
-// 11/04/2023
-// - enabled user font
-// - enabeled short form VDU 23,26,font_id for font selection
-// - enabeled long form VDU 23,26,font_id,size,width,height
-// - modified UDG upload to enable processing of more than 8 bytes
-// 12/04/2023
-// - display reset (via set_mode()) no always happens when switching fonts
-// 13/04/2023 1.03b
-// - now creates backup copy of user font bitmap before switching it out
-// - adapted get_screen_char() to handle variable font heights
-// 17/04/2023 1.03c
-// - many improvements to the "Define Character" VDU
-// - removed backup copies of user font (too much RAM usage)
-// - added another fix to get_screen_char()
-// ----------------------------------------------------------------------------
-
-
 // Title:	        Agon Video BIOS
 // Author:        	Dean Belfield
 // Contributors:	Jeroen Venema (Sprite Code, VGA Mode Switching)
 //					Damien Guard (Fonts)
 //					Igor Chaves Cananea (VGA Mode Switching)
+//          Gerhard Skronn (multi font)
 // Created:       	22/03/2022
 // Last Updated:	17/04/2023
 //

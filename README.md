@@ -1,10 +1,10 @@
-# AGON-VDP (multi font) 1.03 (based on VDP 1.03 RC4)
+# AGON-VDP (multi font)
 
 ### What is the multi font VDP
 
 This is a modification of the official firmware for the esp32 co-processor on the AGON.
 
-It is based on version 1.03 RC4 of AGON Quark VDP and will most likely only work with MOS 1.03 RC4
+The current multi font version is based on version 1.03 AGON Quark VDP and will only work in conjunction with MOS 1.03 
 
 The purpose of this modification is to enable bitmap fonts other than the inbuilt official one, for fun and increased readability, especially in high resolution mode 0. 
 

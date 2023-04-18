@@ -1,37 +1,9 @@
-// ----------------------------------------------------------------------------
-// Agon VDP multi font version
-// based on 1.03 RC 
-// last updated: 9-Apr-2023 gs
-//
-// CHANGELOG:
-// 1.0
-// - added a number of font related defines at the top
-// - added includes for three fonts: atari_font.h, thin_font.h, ibm_font.h
-// 1.01
-// 9-Apr-2023
-// - renamed AGON_FONT_SIZE to AGON_MAX_FONT_SIZE for clarity
-// - added fontmem_t type and fontmem_t FONTS_MEMORY[] array
-// 1.02
-// - enabled more ram storage for max 4 concurrent fonts in memory (8k)
-// 12/04/2023 changed back to just one user font
-//            font buffer size now 4k
-//            user font id changed to 255    
-// 16/04/2023 1.03b
-//	- added BIG_FONTS #define for 16x16 fonts (uses 16k of RAM in total)
-// 17/04/2023 1.03c 
-//	- removed double buffering for saving user fonts (way too much RAM use)
-//  - reduced the standard buffer (without BIG_FONTS support) back down
-//    to 2k as per the original VDP. This should remove issues with running
-//    out off RAM on the esp32 when the sprite system is used in Mode 3
-//    Note that this limits 8x16 fonts to max. ASCII 127 
-// ----------------------------------------------------------------------------
-
-
 //
 // Title:	        Agon Video BIOS - font file
 // Author:        	Damien Guard
+// Contributor		Gerhard Skronn (multi font)
 // Created:       	06/08/2022
-// Last Updated:	20/02/2023
+// Last Updated:	18/04/2023 (see CHANGELOG.md gs)
 //
 // Modinfo:
 // 17/08/2022:		Implemented Acorn font
