@@ -65,7 +65,7 @@ The "Atari ST 8x16 System Font by divVerent" is available on many internet font 
 
 Font9x15 is included with the fabgl library used by the VDP and licensed accordingly.
 
-BESCII is licensed und CCO 1.0 and can be found here: https://github.com/damianvila/font-bescii  
+BESCII is licensed under CCO 1.0 and can be found here: https://github.com/damianvila/font-bescii  
 
 ### Build & install
  
