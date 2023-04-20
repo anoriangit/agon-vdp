@@ -5,7 +5,7 @@
 //					Igor Chaves Cananea (VGA Mode Switching)
 //          Gerhard Skronn (multi font)
 // Created:       	22/03/2022
-// Last Updated:	17/04/2023
+// Last Updated:	18/04/2023
 //
 // Modinfo:
 // 11/07/2022:		Baud rate tweaked for Agon Light, HW Flow Control temporarily commented out
@@ -32,6 +32,7 @@
 // 12/04/2023:					+ Fixed bug in play_note
 // 13/04/2023:					+ Fixed bootup fail with no keyboard
 // 17/04/2023:				RC5 + Moved wait_completion in vdu so that it only executes after graphical operations
+// 18/04/2023:					+ Minor tweaks to wait completion logic
 
 #include "fabgl.h"
 #include "HardwareSerial.h"
@@ -39,7 +40,7 @@
 
 #define VERSION			1
 #define REVISION		3
-#define RC				5
+#define RC				0
 
 #define DEBUG 0     // Serial Debug Mode: 1 = enable
 #define SERIALKB 0  // Serial Keyboard: 1 = enable (Experimental)
@@ -63,32 +64,33 @@ fabgl::Terminal Terminal;  // Used for CP/M mode
 #include "agon_audio.h"    // The Audio class
 #include "agon_palette.h"  // Colour lookup table
 
-int VGAColourDepth;         // Number of colours per pixel (2, 4,8, 16 or 64)
-int charX, charY;           // Current character (X, Y) coordinates
-Point origin;               // Screen origin
-Point p1, p2, p3;           // Coordinate store for lot
-RGB888 gfg;                 // Graphics colour
-RGB888 tfg, tbg;            // Text foreground and background colour
-bool cursorEnabled = true;  // Cursor visibility
-bool logicalCoords = true;  // Use BBC BASIC logical coordinates
-double logicalScaleX;       // Scaling factor for logical coordinates
-double logicalScaleY;
-int count = 0;                // Generic counter, incremented every iteration of loop
-uint8_t numsprites = 0;       // Number of sprites on stage
-uint8_t current_sprite = 0;   // Current sprite number
-uint8_t current_bitmap = 0;   // Current bitmap number
-Bitmap bitmaps[MAX_BITMAPS];  // Bitmap object storage
-Sprite sprites[MAX_SPRITES];  // Sprite object storage
-byte keycode = 0;             // Last pressed key code
-byte modifiers = 0;           // Last pressed key modifiers
-bool terminalMode = false;    // Terminal mode
-int videoMode;                // Current video mode
-bool pagedMode = false;       // Is output paged or not? Set by VDU 14 and 15
-int pagedModeCount = 0;       // Scroll counter for paged mode
-int kbRepeatDelay = 500;      // Keyboard repeat delay ms (250, 500, 750 or 1000)
-int kbRepeatRate = 100;       // Keyboard repeat rate ms (between 33 and 500)
-bool initialised = false;     // Is the system initialised yet?
-uint8_t palette[64];          // Storage for the palette
+int			VGAColourDepth;						// Number of colours per pixel (2, 4,8, 16 or 64)
+int         charX, charY;						// Current character (X, Y) coordinates
+Point		origin;								// Screen origin
+Point       p1, p2, p3;							// Coordinate store for lot
+RGB888      gfg;								// Graphics colour
+RGB888      tfg, tbg;							// Text foreground and background colour
+bool		cursorEnabled = true;				// Cursor visibility
+bool		logicalCoords = true;				// Use BBC BASIC logical coordinates
+double		logicalScaleX;						// Scaling factor for logical coordinates
+double		logicalScaleY;
+int         count = 0;							// Generic counter, incremented every iteration of loop
+uint8_t		numsprites = 0;						// Number of sprites on stage
+uint8_t 	current_sprite = 0; 				// Current sprite number
+uint8_t 	current_bitmap = 0;					// Current bitmap number
+Bitmap		bitmaps[MAX_BITMAPS];				// Bitmap object storage
+Sprite		sprites[MAX_SPRITES];				// Sprite object storage
+byte 		keycode = 0;						// Last pressed key code
+byte 		modifiers = 0;						// Last pressed key modifiers
+bool		terminalMode = false;				// Terminal mode
+int			videoMode;							// Current video mode
+bool 		pagedMode = false;					// Is output paged or not? Set by VDU 14 and 15
+int			pagedModeCount = 0;					// Scroll counter for paged mode
+int			kbRepeatDelay = 500;				// Keyboard repeat delay ms (250, 500, 750 or 1000)		
+int			kbRepeatRate = 100;					// Keyboard repeat rate ms (between 33 and 500)
+bool 		initialised = false;				// Is the system initialised yet?
+bool		doWaitCompletion;					// For vdu function
+uint8_t		palette[64];						// Storage for the palette
 
 audio_channel *audio_channels[AUDIO_CHANNELS];  // Storage for the channel data
 
@@ -871,6 +873,7 @@ void vdu(byte c) {
    		cursorRight();
 	}
 	else {
+		doWaitCompletion = false;
 		switch(c) {
 			case 0x08:  // Cursor Left
 				cursorLeft();
@@ -930,7 +933,9 @@ void vdu(byte c) {
 				Canvas->drawChar(charX, charY, ' ');
 				break;
 		}
-		Canvas->waitCompletion(false);
+		if(doWaitCompletion) {
+			Canvas->waitCompletion(false);
+		}
 	}
 }
 
@@ -1061,20 +1066,24 @@ void vdu_palette() {
 
   RGB888 col;  // The colour to set
 
-  if (VGAColourDepth < 64) {  // If it is a paletted video mode
-    if (p == 255) {           // If p = 255, then use the RGB values
-      col = RGB888(r, g, b);
-    } else if (p < 64) {  // If p < 64, then look the value up in the colour lookup table
-      col = colourLookup[p];
-    } else {
-      debug_log("vdu_palette: p=%d not supported\n\r", p);
-      return;
-    }
-    setPaletteItem(l, col);
-    debug_log("vdu_palette: %d,%d,%d,%d,%d\n\r", l, p, r, g, b);
-  } else {
-    debug_log("vdu_palette: not supported in this mode\n\r");
-  }
+	if(VGAColourDepth < 64) {			// If it is a paletted video mode
+		if(p == 255) {					// If p = 255, then use the RGB values
+			col = RGB888(r, g, b);
+		}
+		else if(p < 64) {				// If p < 64, then look the value up in the colour lookup table
+			col = colourLookup[p];
+		}
+		else {				
+			debug_log("vdu_palette: p=%d not supported\n\r", p);
+			return;
+		}
+		setPaletteItem(l, col);
+		doWaitCompletion = true;
+		debug_log("vdu_palette: %d,%d,%d,%d,%d\n\r", l, p, r, g, b);
+	}
+	else {
+		debug_log("vdu_palette: not supported in this mode\n\r");
+	}
 }
 
 // Handle PLOT
@@ -1090,28 +1099,29 @@ void vdu_plot() {
   if (y == -1) return;
   else y = (short)y;
 
-  p3 = p2;
-  p2 = p1;
-  p1 = translate(scale(x, y));
-  Canvas->setPenColor(gfg);
-  debug_log("vdu_plot: mode %d, (%d,%d) -> (%d,%d)\n\r", mode, x, y, p1.X, p1.Y);
-  switch (mode) {
-    case 0x04:  // Move
-      Canvas->moveTo(p1.X, p1.Y);
-      break;
-    case 0x05:  // Line
-      Canvas->lineTo(p1.X, p1.Y);
-      break;
-    case 0x40 ... 0x47:  // Point
-      Canvas->setPixel(p1.X, p1.Y);
-      break;
-    case 0x50 ... 0x57:  // Triangle
-      vdu_plot_triangle(mode);
-      break;
-    case 0x90 ... 0x97:  // Circle
-      vdu_plot_circle(mode);
-      break;
-  }
+  	p3 = p2;
+  	p2 = p1;
+	p1 = translate(scale(x, y));
+	Canvas->setPenColor(gfg);
+	debug_log("vdu_plot: mode %d, (%d,%d) -> (%d,%d)\n\r", mode, x, y, p1.X, p1.Y);
+  	switch(mode) {
+    	case 0x04: 			// Move 
+      		Canvas->moveTo(p1.X, p1.Y);
+      		break;
+    	case 0x05: 			// Line
+      		Canvas->lineTo(p1.X, p1.Y);
+      		break;
+		case 0x40 ... 0x47:	// Point
+			Canvas->setPixel(p1.X, p1.Y);
+			break;
+    	case 0x50 ... 0x57: // Triangle
+      		vdu_plot_triangle(mode);
+      		break;
+    	case 0x90 ... 0x97: // Circle
+      		vdu_plot_circle(mode);
+      		break;
+  	}
+	doWaitCompletion = true;
 }
 
 void vdu_plot_triangle(byte mode) {
@@ -1461,20 +1471,21 @@ void vdu_sys_scroll() {
   int movement = readByte_t();
   if (movement == -1) return;  // Number of pixels to scroll
 
-  switch (direction) {
-    case 0:  // Right
-      Canvas->scroll(movement, 0);
-      break;
-    case 1:  // Left
-      Canvas->scroll(-movement, 0);
-      break;
-    case 2:  // Down
-      Canvas->scroll(0, movement);
-      break;
-    case 3:  // Up
-      Canvas->scroll(0, -movement);
-      break;
-  }
+	switch(direction) {
+		case 0:	// Right
+			Canvas->scroll(movement, 0);
+			break;
+		case 1: // Left
+			Canvas->scroll(-movement, 0);
+			break;
+		case 2: // Down
+			Canvas->scroll(0, movement);
+			break;
+		case 3: // Up
+			Canvas->scroll(0, -movement);
+			break;
+	}
+	doWaitCompletion = true;
 }
 
 // Play a note
@@ -1564,11 +1575,12 @@ void vdu_sys_sprites(void) {
         if (ry == -1) return;
         y = ry;
 
-        if (bitmaps[current_bitmap].data) Canvas->drawBitmap(x, y, &bitmaps[current_bitmap]);
-
-        debug_log("vdu_sys_sprites: bitmap %d draw command\n\r", current_bitmap);
-      }
-      break;
+			if(bitmaps[current_bitmap].data) {
+				Canvas->drawBitmap(x,y,&bitmaps[current_bitmap]);
+				doWaitCompletion = true;
+			}
+			debug_log("vdu_sys_sprites: bitmap %d draw command\n\r", current_bitmap);
+		}	break;
 
       /*
 		* Sprites
@@ -1618,15 +1630,16 @@ void vdu_sys_sprites(void) {
 			* Sprites 0-(numsprites-1) will be activated on-screen
 			* Make sure all sprites have at least one frame attached to them
 			*/
-        numsprites = b;
-        if (numsprites) {
-          VGAController->setSprites(sprites, numsprites);
-        } else {
-          VGAController->removeSprites();
-        }
-        debug_log("vdu_sys_sprites: %d sprites activated\n\r", numsprites);
-      }
-      break;
+			numsprites = b;
+			if(numsprites) {
+				VGAController->setSprites(sprites, numsprites);
+			}
+			else {
+				VGAController->removeSprites();
+			}
+			doWaitCompletion = true;
+			debug_log("vdu_sys_sprites: %d sprites activated\n\r", numsprites);
+		}	break;
 
     case 8:
       {  // Set next frame on sprite
@@ -1696,28 +1709,25 @@ void vdu_sys_sprites(void) {
       }
       break;
 
-    case 15:
-      {  // Refresh
-        if (numsprites) {
-          VGAController->refreshSprites();
-        }
-        debug_log("vdu_sys_sprites: perform sprite refresh\n\r");
-      }
-      break;
-    case 16:
-      {  // Reset
-        cls();
-        for (n = 0; n < MAX_SPRITES; n++) {
-          sprites[n].visible = false;
-          sprites[current_sprite].setFrame(0);
-          sprites[n].clearBitmaps();
-        }
-        for (n = 0; n < MAX_BITMAPS; n++) {
-          free(bitmaps[n].data);
-          bitmaps[n].dataAllocated = false;
-        }
-        debug_log("vdu_sys_sprites: reset\n\r");
-      }
-      break;
-  }
+	  	case 15: {	// Refresh
+			if(numsprites) { 
+				VGAController->refreshSprites();
+			}
+			debug_log("vdu_sys_sprites: perform sprite refresh\n\r");
+		}	break;
+		case 16: {	// Reset
+			cls();
+			for(n = 0; n < MAX_SPRITES; n++) {
+				sprites[n].visible = false;
+				sprites[current_sprite].setFrame(0);
+				sprites[n].clearBitmaps();
+			}
+			for(n = 0; n < MAX_BITMAPS; n++) {
+	        	free(bitmaps[n].data);
+				bitmaps[n].dataAllocated = false;
+			}
+			doWaitCompletion = true;
+			debug_log("vdu_sys_sprites: reset\n\r");
+		}	break;
+    }
 }
